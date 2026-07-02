@@ -1,0 +1,481 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #121714;
+  background: #f7f8f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f7f8f7;
+  font-family:
+    Manrope,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: Fraunces, ui-serif, Georgia, Cambria, serif;
+  font-optical-sizing: auto;
+}
+
+.site-header {
+  --nav-fg: rgba(255, 255, 255, 0.88);
+  --nav-muted: rgba(255, 255, 255, 0.72);
+  --nav-border: rgba(255, 255, 255, 0.25);
+  --nav-soft-bg: rgba(255, 255, 255, 0.1);
+  --nav-pill-bg: rgba(255, 255, 255, 0.07);
+  --nav-pill-border: rgba(214, 236, 85, 0.2);
+  --nav-icon-bg: rgba(255, 255, 255, 0.06);
+  --nav-accent: #d6ec55;
+}
+
+.site-header-light {
+  --nav-fg: #102b20;
+  --nav-muted: rgba(16, 43, 32, 0.68);
+  --nav-border: rgba(16, 43, 32, 0.16);
+  --nav-soft-bg: rgba(13, 107, 77, 0.08);
+  --nav-pill-bg: rgba(13, 107, 77, 0.08);
+  --nav-pill-border: rgba(13, 107, 77, 0.18);
+  --nav-icon-bg: #f4f6f1;
+  --nav-accent: #0d6b4d;
+}
+
+.nav-link-animated {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  color: var(--nav-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition:
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.nav-link-animated::before,
+.nav-link-animated::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
+}
+
+.nav-link-animated::before {
+  inset: 0.3rem -0.65rem;
+  z-index: -1;
+  border: 1px solid var(--nav-pill-border);
+  border-radius: 999px;
+  background: var(--nav-pill-bg);
+  opacity: 0;
+  transform: scaleX(0.82);
+}
+
+.nav-link-animated::after {
+  left: 0;
+  right: 0;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--nav-accent), transparent);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+}
+
+.nav-link-animated:hover,
+.nav-link-animated:focus-visible {
+  color: var(--nav-fg);
+  transform: translateY(-1px);
+}
+
+.nav-link-animated:hover::before,
+.nav-link-animated:focus-visible::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.nav-link-animated:hover::after,
+.nav-link-animated:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.nav-link-animated:focus-visible {
+  border-radius: 999px;
+  outline: 2px solid var(--nav-accent);
+  outline-offset: 5px;
+}
+
+.mobile-nav-link-animated {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    color 220ms ease,
+    transform 220ms ease,
+    padding-left 220ms ease;
+}
+
+.mobile-nav-link-animated::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.07);
+  opacity: 0;
+  transform: translateX(-10px);
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
+}
+
+.mobile-nav-link-animated::after {
+  content: "";
+  position: absolute;
+  bottom: 0.7rem;
+  left: 0.5rem;
+  top: 0.7rem;
+  width: 3px;
+  border-radius: 999px;
+  background: #d6ec55;
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
+}
+
+.mobile-nav-link-animated:hover,
+.mobile-nav-link-animated:focus-visible {
+  color: #ffffff;
+  padding-left: 1rem;
+  transform: translateX(2px);
+}
+
+.mobile-nav-link-animated:hover::before,
+.mobile-nav-link-animated:focus-visible::before,
+.mobile-nav-link-animated:hover::after,
+.mobile-nav-link-animated:focus-visible::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* Cinematic hero slideshow — slow Ken Burns drift gives the "video" feel */
+@keyframes ocpKenBurns {
+  0% {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.2) translate3d(-2.4%, -1.6%, 0);
+  }
+}
+
+.hero-slide-img {
+  animation: ocpKenBurns 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide-img {
+    animation: none;
+    transform: scale(1.04);
+  }
+}
+
+/* Entrée de la légende quand l'étape du pipeline change */
+@keyframes ocpCaptionIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.caption-swap {
+  animation: ocpCaptionIn 0.55s ease-out both;
+}
+
+@keyframes partnersMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.partner-marquee {
+  width: 100%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.partner-marquee-track {
+  animation: partnersMarquee 48s linear infinite;
+  will-change: transform;
+}
+
+.partner-marquee:hover .partner-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caption-swap {
+    animation: none;
+  }
+
+  .partner-marquee {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .partner-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* ── Espace admin : fond "ethereal shadows" ─────────────────────────────
+   Nappes vertes floutées qui dérivent lentement sur une base vert profond,
+   recouvertes d'un grain SVG (feTurbulence) façon pellicule. */
+.admin-shadow-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 100% at 78% 8%, #0a3d2b 0%, #052519 46%, #02120c 100%);
+}
+
+.admin-shadow-bg::after {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.4;
+  animation: adminGrain 1.4s steps(6) infinite;
+}
+
+.admin-shadow-blob {
+  position: absolute;
+  border-radius: 9999px;
+  mix-blend-mode: screen;
+  filter: blur(72px);
+  will-change: transform;
+}
+
+.admin-blob-a {
+  width: 58vmax;
+  height: 58vmax;
+  left: -16%;
+  top: -22%;
+  background: radial-gradient(closest-side, rgba(15, 122, 87, 0.5), transparent 70%);
+  animation: adminBlobA 26s ease-in-out infinite alternate;
+}
+
+.admin-blob-b {
+  width: 46vmax;
+  height: 46vmax;
+  right: -14%;
+  top: 6%;
+  background: radial-gradient(closest-side, rgba(19, 92, 66, 0.55), transparent 70%);
+  animation: adminBlobB 34s ease-in-out infinite alternate;
+}
+
+.admin-blob-c {
+  width: 64vmax;
+  height: 64vmax;
+  left: 12%;
+  bottom: -34%;
+  background: radial-gradient(closest-side, rgba(214, 236, 85, 0.10), transparent 72%);
+  filter: blur(88px);
+  animation: adminBlobC 40s ease-in-out infinite alternate;
+}
+
+@keyframes adminBlobA {
+  from {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  to {
+    transform: translate3d(10vw, 8vh, 0) scale(1.16) rotate(14deg);
+  }
+}
+
+@keyframes adminBlobB {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-9vw, 12vh, 0) scale(0.94);
+  }
+}
+
+@keyframes adminBlobC {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6vw, -9vh, 0) scale(1.12);
+  }
+}
+
+@keyframes adminGrain {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-14px, 9px, 0);
+  }
+  50% {
+    transform: translate3d(11px, -13px, 0);
+  }
+  75% {
+    transform: translate3d(-7px, -8px, 0);
+  }
+  100% {
+    transform: translate3d(12px, 10px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shadow-blob {
+    animation: none;
+  }
+
+  .admin-shadow-bg::after {
+    animation: none;
+  }
+}
+
+/* ── Espace utilisateur : fond ambiant clair ────────────────────────────
+   Version lumineuse des "ethereal shadows" de l'admin : nappes vertes
+   très diluées qui dérivent lentement sur la base crème. Transform-only. */
+.user-ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.user-ambient-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  will-change: transform;
+}
+
+.user-blob-a {
+  width: 52vmax;
+  height: 52vmax;
+  left: -18%;
+  top: -26%;
+  background: radial-gradient(closest-side, rgba(13, 107, 77, 0.14), transparent 70%);
+  animation: userBlobA 32s ease-in-out infinite alternate;
+}
+
+.user-blob-b {
+  width: 44vmax;
+  height: 44vmax;
+  right: -16%;
+  top: -12%;
+  background: radial-gradient(closest-side, rgba(183, 213, 52, 0.18), transparent 70%);
+  animation: userBlobB 40s ease-in-out infinite alternate;
+}
+
+.user-blob-c {
+  width: 56vmax;
+  height: 56vmax;
+  left: 28%;
+  bottom: -40%;
+  background: radial-gradient(closest-side, rgba(22, 143, 114, 0.10), transparent 72%);
+  filter: blur(88px);
+  animation: userBlobC 46s ease-in-out infinite alternate;
+}
+
+@keyframes userBlobA {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vw, 7vh, 0) scale(1.12);
+  }
+}
+
+@keyframes userBlobB {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+  to {
+    transform: translate3d(-8vw, 10vh, 0) scale(0.94);
+  }
+}
+
+@keyframes userBlobC {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-6vw, -8vh, 0) scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-ambient-blob {
+    animation: none;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  color: #ffffff;
+  background: #0f766e;
+}
