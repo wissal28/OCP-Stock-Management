@@ -1,101 +1,5 @@
 import { randomBytes, createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, "..");
-const databaseDir = path.join(rootDir, "database");
-const userCsvPath = path.join(databaseDir, "utilisateur.csv");
-
-const headers = [
-  "matricule",
-  "email",
-  "fullName",
-  "phone",
-  "filiale",
-  "fonction",
-  "departement",
-  "statut",
-  "role",
-  "photoUrl",
-  "passwordSalt",
-  "passwordHash",
-  "createdAt",
-  "updatedAt"
-];
-
-function parseCsvLine(line) {
-  const cells = [];
-  let current = "";
-  let quoted = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"' && quoted && next === '"') {
-      current += '"';
-      i += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      cells.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  cells.push(current);
-  return cells;
-}
-
-function escapeCell(value) {
-  const cell = String(value ?? "");
-  if (/[",\n\r]/.test(cell)) {
-    return `"${cell.replaceAll('"', '""')}"`;
-  }
-  return cell;
-}
-
-function parseCsv(text) {
-  const lines = text.trim() ? text.replace(/^\uFEFF/, "").split(/\r?\n/) : [];
-  if (lines.length === 0) return [];
-  const csvHeaders = parseCsvLine(lines[0]);
-  return lines.slice(1).filter(Boolean).map((line) => {
-    const cells = parseCsvLine(line);
-    return Object.fromEntries(csvHeaders.map((header, index) => [header, cells[index] ?? ""]));
-  });
-}
-
-function stringifyCsv(rows) {
-  const lines = [headers.join(",")];
-  for (const row of rows) {
-    lines.push(headers.map((header) => escapeCell(row[header])).join(","));
-  }
-  return `${lines.join("\n")}\n`;
-}
-
-async function ensureDatabase() {
-  await mkdir(databaseDir, { recursive: true });
-  try {
-    await readFile(userCsvPath, "utf8");
-  } catch {
-    await writeFile(userCsvPath, stringifyCsv([]), "utf8");
-  }
-}
-
-async function readUsersRaw() {
-  await ensureDatabase();
-  const csv = await readFile(userCsvPath, "utf8");
-  return parseCsv(csv);
-}
-
-async function writeUsersRaw(users) {
-  await ensureDatabase();
-  await writeFile(userCsvPath, stringifyCsv(users), "utf8");
-}
+import { db } from "./db.js";
 
 function normalizeEmail(email) {
   return String(email ?? "").trim().toLowerCase();
@@ -119,20 +23,27 @@ function withoutPassword(user) {
   return { ...safeUser, id: user.matricule };
 }
 
+async function selectByMatricule(matricule) {
+  const result = await db.execute({ sql: "SELECT * FROM users WHERE matricule = @matricule", args: { matricule } });
+  return result.rows[0] ? { ...result.rows[0] } : undefined;
+}
+
+async function selectByEmail(email) {
+  const result = await db.execute({ sql: "SELECT * FROM users WHERE email = @email", args: { email } });
+  return result.rows[0] ? { ...result.rows[0] } : undefined;
+}
+
 export async function listUsers() {
-  const users = await readUsersRaw();
-  return users.map(withoutPassword);
+  const result = await db.execute("SELECT * FROM users ORDER BY createdAt ASC");
+  return result.rows.map((row) => withoutPassword({ ...row }));
 }
 
 export async function getUserByMatricule(matricule) {
-  const normalized = normalizeMatricule(matricule);
-  const users = await readUsersRaw();
-  const user = users.find((item) => normalizeMatricule(item.matricule) === normalized);
+  const user = await selectByMatricule(normalizeMatricule(matricule));
   return user ? withoutPassword(user) : null;
 }
 
 export async function createUser(input) {
-  const users = await readUsersRaw();
   const matricule = normalizeMatricule(input.matricule);
   const email = normalizeEmail(input.email);
 
@@ -151,12 +62,12 @@ export async function createUser(input) {
     error.status = 400;
     throw error;
   }
-  if (users.some((user) => normalizeMatricule(user.matricule) === matricule)) {
+  if (await selectByMatricule(matricule)) {
     const error = new Error("Ce matricule existe déjà.");
     error.status = 409;
     throw error;
   }
-  if (users.some((user) => normalizeEmail(user.email) === email)) {
+  if (await selectByEmail(email)) {
     const error = new Error("Cet email existe déjà.");
     error.status = 409;
     throw error;
@@ -180,15 +91,17 @@ export async function createUser(input) {
     updatedAt: now
   };
 
-  users.push(user);
-  await writeUsersRaw(users);
+  await db.execute({
+    sql: `INSERT INTO users (matricule, email, fullName, phone, filiale, fonction, departement, statut, role, photoUrl, passwordSalt, passwordHash, createdAt, updatedAt)
+          VALUES (@matricule, @email, @fullName, @phone, @filiale, @fonction, @departement, @statut, @role, @photoUrl, @passwordSalt, @passwordHash, @createdAt, @updatedAt)`,
+    args: user
+  });
   return withoutPassword(user);
 }
 
 export async function verifyLogin(identifier, password) {
   const value = String(identifier ?? "").trim().toLowerCase();
-  const users = await readUsersRaw();
-  const user = users.find((item) => normalizeEmail(item.email) === value || normalizeMatricule(item.matricule).toLowerCase() === value);
+  const user = (await selectByEmail(value)) ?? (await selectByMatricule(value.toUpperCase()));
 
   if (!user || user.statut === "bloque") return null;
 
@@ -199,39 +112,40 @@ export async function verifyLogin(identifier, password) {
 
 export async function updateUser(matricule, patch) {
   const normalized = normalizeMatricule(matricule);
-  const users = await readUsersRaw();
-  const index = users.findIndex((user) => normalizeMatricule(user.matricule) === normalized);
-  if (index === -1) {
+  const existing = await selectByMatricule(normalized);
+  if (!existing) {
     const error = new Error("Utilisateur introuvable.");
     error.status = 404;
     throw error;
   }
 
   const allowed = ["fullName", "phone", "filiale", "fonction", "departement", "statut", "role", "photoUrl"];
-  const next = { ...users[index] };
+  const next = { ...existing };
   for (const key of allowed) {
     if (Object.prototype.hasOwnProperty.call(patch, key)) {
       next[key] = String(patch[key] ?? "").trim();
     }
   }
   next.updatedAt = new Date().toISOString();
-  users[index] = next;
-  await writeUsersRaw(users);
+  await db.execute({
+    sql: `UPDATE users SET fullName = @fullName, phone = @phone, filiale = @filiale, fonction = @fonction,
+      departement = @departement, statut = @statut, role = @role, photoUrl = @photoUrl, updatedAt = @updatedAt
+    WHERE matricule = @matricule`,
+    args: next
+  });
   return withoutPassword(next);
 }
 
 export async function changePassword(matricule, oldPassword, newPassword) {
   const normalized = normalizeMatricule(matricule);
-  const users = await readUsersRaw();
-  const index = users.findIndex((user) => normalizeMatricule(user.matricule) === normalized);
-  if (index === -1) {
+  const existing = await selectByMatricule(normalized);
+  if (!existing) {
     const error = new Error("Utilisateur introuvable.");
     error.status = 404;
     throw error;
   }
 
-  const user = users[index];
-  if (hashPassword(oldPassword, user.passwordSalt) !== user.passwordHash) {
+  if (hashPassword(oldPassword, existing.passwordSalt) !== existing.passwordHash) {
     const error = new Error("L'ancien mot de passe est incorrect.");
     error.status = 401;
     throw error;
@@ -243,20 +157,21 @@ export async function changePassword(matricule, oldPassword, newPassword) {
   }
 
   const passwordRecord = createPasswordRecord(newPassword);
-  users[index] = { ...user, ...passwordRecord, updatedAt: new Date().toISOString() };
-  await writeUsersRaw(users);
-  return withoutPassword(users[index]);
+  const updatedAt = new Date().toISOString();
+  await db.execute({
+    sql: "UPDATE users SET passwordSalt = @passwordSalt, passwordHash = @passwordHash, updatedAt = @updatedAt WHERE matricule = @matricule",
+    args: { matricule: normalized, ...passwordRecord, updatedAt }
+  });
+  return withoutPassword({ ...existing, ...passwordRecord, updatedAt });
 }
 
 export async function deleteUser(matricule) {
   const normalized = normalizeMatricule(matricule);
-  const users = await readUsersRaw();
-  const nextUsers = users.filter((user) => normalizeMatricule(user.matricule) !== normalized);
-  if (nextUsers.length === users.length) {
+  const result = await db.execute({ sql: "DELETE FROM users WHERE matricule = @matricule", args: { matricule: normalized } });
+  if (result.rowsAffected === 0) {
     const error = new Error("Utilisateur introuvable.");
     error.status = 404;
     throw error;
   }
-  await writeUsersRaw(nextUsers);
   return { ok: true };
 }

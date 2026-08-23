@@ -1,28 +1,59 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeftRight,
+  BarChart3,
+  Bot,
   Boxes,
   Camera,
   CheckCircle2,
   Construction,
   Eye,
   EyeOff,
+  HardHat,
   Home,
   Layers,
   LockKeyhole,
   LogOut,
   Mail,
   Menu,
+  Package,
   Phone,
   Save,
   Settings,
+  Ship,
+  TrainFront,
   UserRound,
+  Wrench,
   X
 } from "lucide-react";
-import { changeUserPassword, getUser, updateUser, type CsvUser } from "./api";
+import { changeUserPassword, getCurrentUser, getUser, logoutUser, updateUser, type CsvUser } from "./api";
 import SiteFooter from "./SiteFooter";
+import SynoptiqueManutention from "./components/module2/SynoptiqueManutention";
+import GestionTrains from "./components/train/GestionTrains";
+import GestionNavires from "./components/navire/GestionNavires";
+import GestionStock from "./components/stock/GestionStock";
+import MouvementsStock from "./components/stock/MouvementsStock";
+import StockDashboard from "./components/stock/StockDashboard";
+import GestionHSE from "./components/hse/GestionHSE";
+import BilanArrets from "./components/arrets/BilanArrets";
+import AssistantIA from "./components/assistant/AssistantIA";
+import FloatingChatWidget from "./components/assistant/FloatingChatWidget";
+import GestionMaintenance from "./components/maintenance/GestionMaintenance";
+import NotificationBell from "./notifications/NotificationBell";
 
-type UserView = "parametres" | "module1" | "module2";
+type UserView =
+  | "parametres"
+  | "module1"
+  | "module2"
+  | "train"
+  | "navires"
+  | "stock"
+  | "mouvements-stock"
+  | "bilan-arrets"
+  | "maintenance"
+  | "hse"
+  | "assistant-ia";
 
 const inputClass =
   "h-12 w-full rounded-md border border-[#dfe6d7] bg-white px-4 text-sm font-semibold text-[#102b20] outline-none transition placeholder:text-[#829187] focus:border-[#0d6b4d] focus:shadow-[0_0_0_4px_rgba(13,107,77,0.10)]";
@@ -30,8 +61,16 @@ const disabledClass = "h-12 w-full rounded-md border border-[#dfe6d7] bg-[#edf2e
 
 const navItems: { key: UserView; label: string; Icon: typeof Settings; wip?: boolean }[] = [
   { key: "parametres", label: "Paramètres", Icon: Settings },
-  { key: "module1", label: "Module 1", Icon: Boxes, wip: true },
-  { key: "module2", label: "Module 2", Icon: Layers, wip: true }
+  { key: "module1", label: "Dashboard", Icon: Boxes },
+  { key: "module2", label: "Schéma de manutention", Icon: Layers },
+  { key: "train", label: "Gestion de train", Icon: TrainFront },
+  { key: "navires", label: "Gestion de navires", Icon: Ship },
+  { key: "stock", label: "Gestion de stock", Icon: Package },
+  { key: "mouvements-stock", label: "Mouvements de stock", Icon: ArrowLeftRight },
+  { key: "bilan-arrets", label: "Bilan des arrêts", Icon: BarChart3 },
+  { key: "maintenance", label: "Maintenance", Icon: Wrench },
+  { key: "hse", label: "HSE", Icon: HardHat },
+  { key: "assistant-ia", label: "Assistant IA", Icon: Bot }
 ];
 
 export default function UserPage() {
@@ -56,12 +95,18 @@ export default function UserPage() {
     document.documentElement.lang = "fr";
     document.title = "OCP Stock | Espace utilisateur";
 
-    getUser(matricule)
-      .then((nextUser) => {
-        setUser(nextUser);
-        setDraft(nextUser);
-      })
-      .catch((apiError: Error) => setError(apiError.message));
+    getCurrentUser().then((sessionUser) => {
+      if (!sessionUser || sessionUser.matricule.toUpperCase() !== matricule.toUpperCase()) {
+        window.location.href = "/";
+        return;
+      }
+      getUser(matricule)
+        .then((nextUser) => {
+          setUser(nextUser);
+          setDraft(nextUser);
+        })
+        .catch((apiError: Error) => setError(apiError.message));
+    });
   }, [matricule]);
 
   const changeView = (view: UserView) => {
@@ -159,18 +204,18 @@ export default function UserPage() {
         )}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex w-72 transform flex-col border-r border-[#dfe6d7] bg-white shadow-[0_24px_80px_rgba(16,43,32,0.18)] transition-transform duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-svh lg:w-auto lg:translate-x-0 lg:bg-white/72 lg:shadow-none lg:backdrop-blur-xl ${
+          className={`fixed inset-y-0 left-0 z-40 flex w-72 transform flex-col border-r border-[#132a1f] bg-[#0b1912] shadow-[0_24px_80px_rgba(3,12,8,0.45)] transition-transform duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-svh lg:w-auto lg:translate-x-0 lg:bg-[#0b1912]/95 lg:shadow-none lg:backdrop-blur-xl ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex h-16 items-center justify-between border-b border-[#dfe6d7] px-4">
+          <div className="flex h-16 items-center justify-between border-b border-[#132a1f] px-4">
             <a href="/" className="flex items-center gap-3" aria-label="Retour à l'accueil OCP Stock">
-              <img src="/Logo-OCP_header.svg" alt="OCP" className="h-8 w-auto" />
-              <span className="text-sm font-semibold uppercase text-[#5e7166]">Stock</span>
+              <img src="/Logo-OCP_header.svg" alt="OCP" className="h-8 w-auto brightness-0 invert" />
+              <span className="text-sm font-semibold uppercase text-[#7fa08c]">Stock</span>
             </a>
             <button
               type="button"
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-[#dfe6d7] text-[#314238] lg:hidden"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-[#1e3a2c] text-[#9fb3a6] lg:hidden"
               aria-label="Fermer la navigation"
               onClick={() => setIsSidebarOpen(false)}
             >
@@ -186,15 +231,15 @@ export default function UserPage() {
                   key={key}
                   type="button"
                   onClick={() => changeView(key)}
-                  className={`relative flex h-11 cursor-pointer items-center gap-3 rounded-md px-3 text-sm font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d6b4d] ${
-                    isActive ? "text-[#0d6b4d]" : "text-[#5e7166] hover:text-[#102b20]"
+                  className={`relative flex h-11 cursor-pointer items-center gap-3 rounded-md px-3 text-sm font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b7d534] ${
+                    isActive ? "text-[#b7d534]" : "text-[#8fae9c] hover:text-white"
                   }`}
                   aria-current={isActive ? "page" : undefined}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="user-nav-active"
-                      className="absolute inset-0 rounded-md border border-[#cfe3d8] bg-[#e8f4ed]"
+                      className="absolute inset-0 rounded-md border border-[#2a5a3f] bg-[#15321f]"
                       transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 480, damping: 40 }}
                       aria-hidden="true"
                     />
@@ -204,7 +249,7 @@ export default function UserPage() {
                     {label}
                   </span>
                   {wip && (
-                    <span className="relative z-10 rounded-full border border-[#e3ecc2] bg-[#f3f8d9] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#5c7a12]">
+                    <span className="relative z-10 rounded-full border border-[#3a4a2e] bg-[#1b2a12] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#c8e06a]">
                       Bientôt
                     </span>
                   )}
@@ -213,56 +258,62 @@ export default function UserPage() {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-[#dfe6d7] p-4">
-            <a
-              href="/"
-              className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-bold text-[#5e7166] transition-colors duration-200 hover:bg-[#f8faf7] hover:text-[#102b20] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d6b4d]"
+          <div className="mt-auto border-t border-[#132a1f] p-4">
+            <button
+              type="button"
+              onClick={() => {
+                logoutUser().finally(() => {
+                  window.location.href = "/";
+                });
+              }}
+              className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-sm font-bold text-[#8fae9c] transition-colors duration-200 hover:bg-white/5 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b7d534]"
             >
               <LogOut size={17} aria-hidden="true" />
               Déconnexion
-            </a>
+            </button>
           </div>
         </aside>
 
         <div className="min-w-0">
-          <header className="sticky top-0 z-20 border-b border-[#dfe6d7] bg-white/80 backdrop-blur-xl">
+          <header className="sticky top-0 z-20 border-b border-[#132a1f] bg-[#0b1912]/95 backdrop-blur-xl">
             <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setIsSidebarOpen(true)}
-                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-[#dfe6d7] bg-white text-[#314238] lg:hidden"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-[#1e3a2c] bg-[#12241a] text-[#9fb3a6] lg:hidden"
                   aria-label="Ouvrir la navigation"
                 >
                   <Menu size={18} aria-hidden="true" />
                 </button>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black">{activeItem.label}</p>
-                  <p className="hidden truncate text-xs font-semibold text-[#6c7c71] sm:block">Espace utilisateur OCP Stock</p>
+                  <p className="truncate text-sm font-black text-white">{activeItem.label}</p>
+                  <p className="hidden truncate text-xs font-semibold text-[#7fa08c] sm:block">Espace utilisateur OCP Stock</p>
                 </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                <NotificationBell onNavigate={(view) => setActiveView(view as UserView)} />
                 <a
                   href="/"
-                  className="flex h-10 w-10 items-center justify-center rounded-md border border-[#dfe6d7] bg-white text-[#314238] transition hover:border-[#0d6b4d]/45 hover:bg-[#f6f7ef] hover:text-[#0d6b4d]"
+                  className="flex h-10 w-10 items-center justify-center rounded-md border border-[#1e3a2c] bg-[#12241a] text-[#9fb3a6] transition hover:border-[#b7d534]/45 hover:bg-[#15321f] hover:text-[#b7d534]"
                   aria-label="Revenir à la page d'accueil"
                   title="Revenir à la page d'accueil"
                 >
                   <Home size={17} aria-hidden="true" />
                 </a>
                 {draft && (
-                  <span className="hidden items-center gap-2 rounded-md border border-[#dfe6d7] bg-white px-2 py-1.5 md:flex">
+                  <span className="hidden items-center gap-2 rounded-md border border-[#1e3a2c] bg-[#12241a] px-2 py-1.5 md:flex">
                     {draft.photoUrl ? (
                       <img src={draft.photoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                     ) : (
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e8f4ed] text-[#0d6b4d]">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#15321f] text-[#b7d534]">
                         <UserRound size={16} aria-hidden="true" />
                       </span>
                     )}
                     <span className="min-w-0">
-                      <span className="block max-w-[160px] truncate text-xs font-bold text-[#314238]">{draft.fullName}</span>
-                      <span className="block text-[10px] font-semibold uppercase tracking-wide text-[#6c7c71]">{draft.matricule}</span>
+                      <span className="block max-w-[160px] truncate text-xs font-bold text-white">{draft.fullName}</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-wide text-[#7fa08c]">{draft.matricule}</span>
                     </span>
                   </span>
                 )}
@@ -271,7 +322,20 @@ export default function UserPage() {
           </header>
 
           <main className="min-h-[calc(100svh-64px)] px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-5xl">
+            <div
+              className={`mx-auto w-full ${
+                activeView === "train" ||
+                activeView === "navires" ||
+                activeView === "stock" ||
+                activeView === "mouvements-stock" ||
+                activeView === "bilan-arrets" ||
+                activeView === "maintenance" ||
+                activeView === "hse" ||
+                activeView === "module2"
+                  ? "max-w-none"
+                  : "max-w-5xl"
+              }`}
+            >
               <div aria-live="polite">
                 <AnimatePresence>
                   {error && (
@@ -331,6 +395,26 @@ export default function UserPage() {
                       onConfirmPassword={setConfirmPassword}
                       onToggleShowPasswords={() => setShowPasswords((value) => !value)}
                     />
+                  ) : activeView === "module1" ? (
+                    <StockDashboard onNavigate={changeView} />
+                  ) : activeView === "module2" ? (
+                    <SynoptiqueManutention />
+                  ) : activeView === "train" ? (
+                    <GestionTrains />
+                  ) : activeView === "navires" ? (
+                    <GestionNavires />
+                  ) : activeView === "stock" ? (
+                    <GestionStock />
+                  ) : activeView === "mouvements-stock" ? (
+                    <MouvementsStock />
+                  ) : activeView === "bilan-arrets" ? (
+                    <BilanArrets />
+                  ) : activeView === "maintenance" ? (
+                    <GestionMaintenance />
+                  ) : activeView === "hse" ? (
+                    <GestionHSE />
+                  ) : activeView === "assistant-ia" ? (
+                    <AssistantIA onNavigate={(view) => setActiveView(view as UserView)} />
                   ) : (
                     <ModulePlaceholder label={activeItem.label} reduced={reduced} />
                   )}
@@ -344,6 +428,8 @@ export default function UserPage() {
       <div className="relative z-10">
         <SiteFooter lang="fr" homeHrefPrefix="/" />
       </div>
+
+      {activeView !== "assistant-ia" && <FloatingChatWidget onNavigate={(view) => setActiveView(view as UserView)} />}
     </div>
   );
 }

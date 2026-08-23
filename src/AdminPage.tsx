@@ -5,7 +5,7 @@ import SiteFooter from "./SiteFooter";
 import { AppShell, type AppView } from "./components/app-shell";
 import { AdminSettings, type AdminProfile } from "./components/admin-settings";
 import { Dashboard, type AdminUser, type UserStatus } from "./components/dashboard";
-import { changeUserPassword, listUsers, loginUser, updateUser, type CsvUser } from "./api";
+import { changeUserPassword, getCurrentUser, listUsers, loginUser, logoutUser, updateUser, type CsvUser } from "./api";
 
 type Toast = { id: number; text: string };
 
@@ -176,10 +176,20 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    getCurrentUser().then((sessionUser) => {
+      if (sessionUser && sessionUser.role === "Administrateur") {
+        setAdminProfile(toAdminProfile(sessionUser));
+        setIsLoggedIn(true);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
     listUsers()
       .then((csvUsers) => setUsers(csvUsers.map(toAdminUser)))
       .catch(() => setToast({ id: Date.now(), text: "Impossible de charger utilisateur.csv." }));
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (!toast) return;
@@ -237,7 +247,10 @@ export default function AdminPage() {
           adminName={adminProfile.fullName}
           adminPhotoUrl={adminProfile.photoUrl}
           onViewChange={setActiveView}
-          onLogout={() => setIsLoggedIn(false)}
+          onLogout={() => {
+            void logoutUser();
+            setIsLoggedIn(false);
+          }}
         >
           {activeView === "dashboard" ? (
             <Dashboard reduced={reduced} users={users} onRoleChange={handleRoleChange} onToggleBlock={handleToggleBlock} />

@@ -1,0 +1,25 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Le frontend appelle des chemins relatifs "/api/..." (voir src/api.ts) — redirigés ici vers la
+# fonction unique qui sert toute l'API (netlify/functions/api.js restaure ensuite le chemin d'origine).
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# SPA React : toute route non-API doit retomber sur index.html (react-router côté client gère le reste).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Calcul quotidien du stock à 7h (voir server/stockRolloverJob.js) — toutes les heures pour rester
+# robuste au fuseau horaire (le Maroc alterne UTC+0/UTC+1) ; idempotent, donc sans effet de bord.
+[functions."stock-rollover"]
+  schedule = "0 * * * *"

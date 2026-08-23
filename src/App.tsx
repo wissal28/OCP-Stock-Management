@@ -1423,40 +1423,55 @@ function PortGalleryStackSection({ lang, reduced }: { lang: Lang; reduced: boole
     lang === "fr"
       ? {
           eyebrow: "Port Casablanca en images",
-          title: "Inside OCP Casa Port",
-          text: "Une lecture visuelle des étapes qui structurent le passage du stock, de l'arrivée au quai jusqu'au chargement export."
+          titleLead: "Inside OCP",
+          titleAccent: "Casa Port",
+          text: "Une lecture visuelle des étapes qui structurent le passage du stock, de l'arrivée au quai jusqu'au chargement export.",
+          stepsLabel: `${portStackCards.length} étapes clés · Port de Casablanca`
         }
       : {
           eyebrow: "Casablanca Port in images",
-          title: "Inside OCP Casa Port",
-          text: "A visual reading of the steps that structure stock movement, from quay arrival to export loading."
+          titleLead: "Inside OCP",
+          titleAccent: "Casa Port",
+          text: "A visual reading of the steps that structure stock movement, from quay arrival to export loading.",
+          stepsLabel: `${portStackCards.length} key steps · Casablanca Port`
         };
 
   const cardContent = (card: (typeof portStackCards)[number], index: number) => {
     const item = card[lang];
 
     return (
-      <article className="grid min-h-[440px] bg-white lg:min-h-[500px] lg:grid-cols-[1.12fr_0.88fr]">
+      <article className="grid min-h-[440px] overflow-hidden bg-white lg:min-h-[500px] lg:grid-cols-[1.12fr_0.88fr]">
         <div className="relative min-h-[260px] overflow-hidden bg-[#0a3d2b] lg:min-h-[500px]">
           <img
             src={card.image}
             alt={`${item.title} ${item.label}`}
             loading={index === 0 ? "eager" : "lazy"}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="hero-slide-img absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,40,29,0.12),rgba(7,40,29,0.54))]" />
         </div>
 
-        <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
-          <div>
+        <div className="relative flex flex-col justify-between gap-8 overflow-hidden p-6 sm:p-8 lg:p-10">
+          <span
+            className="font-display pointer-events-none absolute -top-3 right-5 select-none text-[7rem] font-medium leading-none text-[#0d6b4d]/[0.07] sm:text-[8.5rem]"
+            aria-hidden="true"
+          >
+            {card.step}
+          </span>
+          <div className="relative">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0d6b4d]">{item.label}</p>
             <h3 className="font-display mt-4 max-w-md text-3xl font-medium leading-tight tracking-tight text-[#102b20] sm:text-[2.35rem]">
               {item.title}
             </h3>
             <p className="mt-5 max-w-md text-base leading-8 text-[#5e7166]">{item.text}</p>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#edf2e8]">
-            <span className="block h-full rounded-full bg-[#0d6b4d]" style={{ width: `${((index + 1) / portStackCards.length) * 100}%` }} />
+          <div className="relative flex items-center gap-2">
+            {portStackCards.map((stepCard, i) => (
+              <span
+                key={stepCard.image}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${i <= index ? "bg-[#0d6b4d]" : "bg-[#edf2e8]"}`}
+              />
+            ))}
           </div>
         </div>
       </article>
@@ -1472,13 +1487,24 @@ function PortGalleryStackSection({ lang, reduced }: { lang: Lang; reduced: boole
           viewport={{ once: true, amount: 0.35 }}
           variants={fadeUp}
           transition={reduced ? { duration: 0 } : { duration: 0.7, ease: PORT_EASE }}
-          className="max-w-3xl"
+          className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-end lg:gap-14"
         >
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0d6b4d]">{copy.eyebrow}</p>
-          <h2 className="font-display mt-4 text-3xl font-medium leading-[1.1] tracking-tight text-[#102b20] sm:text-[2.7rem]">
-            {copy.title}
-          </h2>
-          <p className="mt-5 text-base leading-8 text-[#5e7166]">{copy.text}</p>
+          <div>
+            <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.22em] text-[#0d6b4d]">
+              <span className="h-px w-8 bg-[#0d6b4d]" aria-hidden="true" />
+              {copy.eyebrow}
+            </p>
+            <h2 className="font-display mt-5 text-4xl font-medium leading-[1.05] tracking-tight text-[#102b20] sm:text-[3.4rem]">
+              {copy.titleLead} <span className="italic text-[#0d6b4d]">{copy.titleAccent}</span>
+            </h2>
+          </div>
+          <div className="flex flex-col gap-5 lg:pb-2">
+            <p className="text-base leading-8 text-[#5e7166]">{copy.text}</p>
+            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#829187]">
+              <MapPin size={14} className="shrink-0 text-[#0d6b4d]" aria-hidden="true" />
+              {copy.stepsLabel}
+            </p>
+          </div>
         </motion.div>
 
         {reduced ? (
@@ -1496,7 +1522,8 @@ function PortGalleryStackSection({ lang, reduced }: { lang: Lang; reduced: boole
             itemScale={0.026}
             itemStackDistance={34}
             baseScale={0.88}
-            blurAmount={0.25}
+            stackPosition="30%"
+            blurAmount={3.5}
             className="mt-[-2vh]"
           >
             {portStackCards.map((card, index) => (

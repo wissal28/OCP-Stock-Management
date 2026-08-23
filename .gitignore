@@ -25,3 +25,7 @@ pnpm-debug.log*
 
 # Local reference documents
 categories_postes_departements.pdf
+database/*.db 
+database/*.db-shm 
+database/*.db-wal 
+database/*.db.backup-* 

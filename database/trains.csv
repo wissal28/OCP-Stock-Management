@@ -1,0 +1,6 @@
+id,dateArriveePrevue,heureArriveePrevue,heureArriveeReelle,numeroTrain,matricule,nombreWagons,qualite,tonnagePrevu,tonnageExpedie,tonnageBascule,statut,destinationPrevue,celluleDestinationPrevue,observations,createdAt,updatedAt,createdBy,updatedBy
+train-9608,2026-01-01,05:30,05:42,9608,9608,59,K12,3750,3750,3695,Déchargé,Mixte,[],,,,,
+train-9610,2026-01-01,07:15,07:10,9610,9610,56,K08,3600,3556,3630,Déchargé,Lots,[],,,,,
+train-9600,2026-01-01,09:00,09:35,9600,9600,60,K10,3800,3837,3546,En retard,Silos,[],Retard aiguillage,,,,
+train-9602,2026-01-01,11:20,,9602,9602,58,K12,3616,0,0,Prévu,Lots,[],,,,,
+train-9606,2026-01-01,13:45,13:50,9606,9606,60,K06,3800,3801,3814,En déchargement,Mixte,[],,,,,

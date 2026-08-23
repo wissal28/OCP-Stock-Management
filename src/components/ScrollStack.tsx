@@ -9,7 +9,7 @@ export interface ScrollStackItemProps {
 
 export const ScrollStackItem: React.FC<ScrollStackItemProps> = ({ children, itemClassName = "" }) => (
   <div
-    className={`scroll-stack-card relative w-full h-80 my-8 p-12 rounded-[40px] shadow-[0_0_30px_rgba(0,0,0,0.1)] box-border origin-top will-change-transform ${itemClassName}`.trim()}
+    className={`scroll-stack-card relative w-full h-80 my-8 p-12 rounded-[40px] shadow-[0_30px_70px_-12px_rgba(8,43,31,0.28)] box-border origin-top will-change-transform ${itemClassName}`.trim()}
     style={{
       backfaceVisibility: "hidden",
       transformStyle: "preserve-3d"
@@ -57,6 +57,12 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   const cardsRef = useRef<HTMLElement[]>([]);
   const lastTransformsRef = useRef(new Map<number, any>());
   const isUpdatingRef = useRef(false);
+  // Cache of each card's natural (untransformed) document offset. getBoundingClientRect() reflects
+  // the card's current rendered position, which already includes the transform this same function
+  // applies — reading it live every frame feeds each frame's output back into the next frame's input
+  // and produces runaway jumps (the pinned cards visibly jitter/overlap instead of stacking smoothly).
+  // Measured once (layout mount + resize) instead of on every scroll frame.
+  const cardNaturalTopsRef = useRef<number[]>([]);
 
   const calculateProgress = useCallback((scrollTop: number, start: number, end: number) => {
     if (scrollTop < start) return 0;
@@ -89,8 +95,12 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
   }, [useWindowScroll]);
 
   const getElementOffset = useCallback(
-    (element: HTMLElement) => {
+    (element: HTMLElement, cardIndex?: number) => {
       if (useWindowScroll) {
+        if (cardIndex !== undefined) {
+          const cached = cardNaturalTopsRef.current[cardIndex];
+          if (cached !== undefined) return cached;
+        }
         const rect = element.getBoundingClientRect();
         return rect.top + window.scrollY;
       } else {
@@ -99,6 +109,22 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     },
     [useWindowScroll]
   );
+
+  /** Measures each card's natural top offset with its transform temporarily cleared, so the cached
+   * value is unaffected by whatever transform the previous frame left on it. Must be called after
+   * layout changes (mount, resize) — never from inside the per-frame scroll handler. */
+  const measureNaturalTops = useCallback(() => {
+    const cards = cardsRef.current;
+    if (!cards.length) return;
+    const previousTransforms = cards.map((card) => card.style.transform);
+    cards.forEach((card) => {
+      card.style.transform = "none";
+    });
+    cardNaturalTopsRef.current = cards.map((card) => card.getBoundingClientRect().top + window.scrollY);
+    cards.forEach((card, i) => {
+      card.style.transform = previousTransforms[i];
+    });
+  }, []);
 
   const updateCardTransforms = useCallback(() => {
     if (!cardsRef.current.length || isUpdatingRef.current) return;
@@ -118,7 +144,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     cardsRef.current.forEach((card, i) => {
       if (!card) return;
 
-      const cardTop = getElementOffset(card);
+      const cardTop = getElementOffset(card, i);
       const triggerStart = cardTop - stackPositionPx - itemStackDistance * i;
       const triggerEnd = cardTop - scaleEndPositionPx;
       const pinStart = cardTop - stackPositionPx - itemStackDistance * i;
@@ -130,10 +156,11 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
       const rotation = rotationAmount ? i * rotationAmount * scaleProgress : 0;
 
       let blur = 0;
-      if (blurAmount) {
+      let opacity = 1;
+      {
         let topCardIndex = 0;
         for (let j = 0; j < cardsRef.current.length; j++) {
-          const jCardTop = getElementOffset(cardsRef.current[j]);
+          const jCardTop = getElementOffset(cardsRef.current[j], j);
           const jTriggerStart = jCardTop - stackPositionPx - itemStackDistance * j;
           if (scrollTop >= jTriggerStart) {
             topCardIndex = j;
@@ -142,7 +169,10 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
         if (i < topCardIndex) {
           const depthInStack = topCardIndex - i;
-          blur = Math.max(0, depthInStack * blurAmount);
+          if (blurAmount) blur = Math.max(0, depthInStack * blurAmount);
+          // Cards further back in the stack fade out so their photo doesn't
+          // sit as a sharp, hard-edged sliver poking out above the active card.
+          opacity = Math.max(0.2, 1 - depthInStack * 0.4);
         }
       }
 
@@ -159,7 +189,8 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         translateY: Math.round(translateY * 100) / 100,
         scale: Math.round(scale * 1000) / 1000,
         rotation: Math.round(rotation * 100) / 100,
-        blur: Math.round(blur * 100) / 100
+        blur: Math.round(blur * 100) / 100,
+        opacity: Math.round(opacity * 100) / 100
       };
 
       const lastTransform = lastTransformsRef.current.get(i);
@@ -168,7 +199,8 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1 ||
         Math.abs(lastTransform.scale - newTransform.scale) > 0.001 ||
         Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1 ||
-        Math.abs(lastTransform.blur - newTransform.blur) > 0.1;
+        Math.abs(lastTransform.blur - newTransform.blur) > 0.1 ||
+        Math.abs(lastTransform.opacity - newTransform.opacity) > 0.01;
 
       if (hasChanged) {
         const transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`;
@@ -176,6 +208,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
         card.style.transform = transform;
         card.style.filter = filter;
+        card.style.opacity = String(newTransform.opacity);
 
         lastTransformsRef.current.set(i, newTransform);
       }
@@ -318,10 +351,12 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
 
     setupLenis();
 
+    measureNaturalTops();
     updateEndSpacing();
     updateCardTransforms();
 
     const handleResize = () => {
+      measureNaturalTops();
       updateEndSpacing();
       updateCardTransforms();
     };
@@ -353,6 +388,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
     useWindowScroll,
     onStackComplete,
     setupLenis,
+    measureNaturalTops,
     updateEndSpacing,
     updateCardTransforms
   ]);
@@ -370,7 +406,7 @@ const ScrollStack: React.FC<ScrollStackProps> = ({
         willChange: "scroll-position"
       }}
     >
-      <div className={`scroll-stack-inner pt-[20vh] px-20 min-h-screen ${useWindowScroll ? "" : "pb-[50rem]"}`.trim()}>
+      <div className={`scroll-stack-inner pt-[20vh] px-4 sm:px-10 lg:px-20 min-h-screen ${useWindowScroll ? "" : "pb-[50rem]"}`.trim()}>
         {children}
         {/* Spacer so the last pin can release cleanly */}
         <div className="scroll-stack-end w-full h-px" />
